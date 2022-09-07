@@ -1,0 +1,4 @@
+<launch>
+    <node name="bot" pkg="entrega1" type="robotControl.py" output="screen" />
+</launch>
+
