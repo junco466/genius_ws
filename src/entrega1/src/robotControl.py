@@ -108,6 +108,8 @@ class scanner:
         #     ranges[aux:(angulo//5*i)]
         #     aux = angulo//5*i
 
+
+
     def divList(self, p, n):
         for i in range(0,len(p), n):
             yield p[i:i+n]
@@ -119,12 +121,13 @@ class scanner:
 
         prom = []
         for ob in lista:
+            
             prom.append(np.mean(ob))
 
         print(prom)
         aux = np.matmul(w,prom)
         # suma = sum(abs(aux))
-        print(1/aux)
+        print(aux)
 
     def initFuzzy(self):
         lidarDist = ctrl.Antecedent(np.arange(0.3, 3.8, 0.1), 'distance')
@@ -137,6 +140,7 @@ class scanner:
         lid['asd'] = fuzz.trimf(lid.universe, [0, 0, 13])
         lid['medium'] = fuzz.trimf(lid.universe, [0, 13, 25])
         lid['high'] = fuzz.trimf(lid.universe, [13, 25, 25])
+        
         lidNames = ['center','left','center','right','farRight']
         lid.automf(names=lidNames)
 
