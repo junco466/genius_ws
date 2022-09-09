@@ -65,10 +65,6 @@ class scanner:
 
     def scanCallback(self,msg):
         distances = msg.ranges
-
-        # sen = [x for x in distances]
-        # sen = np.array(sen)
-        # print(np.nanmax(sen[sen != np.inf]))
         self.moveRules(distances)
 
         
@@ -85,29 +81,19 @@ class scanner:
             if (ranges[i] == np.inf):
                 ranges[i] = 4
 
-        # print(ranges)
-        # pdb.set_trace()
+        lidAvg = self.pesos(ranges)
+        outLin, outAng = self.fuzzInput(lidAvg)
 
-        self.pesos(ranges)
-        # tetha = [x for x in range(0,angulo)] 
+        for dato in ranges:
+            if dato < 0.45:
+                outLin = -0.25
+                print('Nooooo, las guevas!!!!')
+                break
 
-        # plt.plot(tetha,ranges)
-        # plt.show()
-        # print(len(ranges[1]))
-
-        # if lidar[0] > 3.4:
-        #     self.moveObject.move(0.0,0.0,-2.0)
-        #     rospy.loginfo("Moving")
-        # elif lidar[0] < 1.0:
-        #     self.moveObject.stop()
-        #     rospy.loginfo("Stop")
-
-        # aux = 0
-        # for i in range(1,6):
-            
-        #     ranges[aux:(angulo//5*i)]
-        #     aux = angulo//5*i
-
+        self.moveObject.move(0, outLin, outAng)
+        print('linear: ' ,outLin)
+        print('angular: ', outAng)
+        rospy.loginfo("Moving")
 
 
     def divList(self, p, n):
@@ -117,61 +103,69 @@ class scanner:
     def pesos(self,d):
         w = [-0.4, -0.6, -0.8, 1, 0.8, 0.6, 0.4]
         lista = list(self.divList(d, math.ceil(len(d)/7)))
-        # print(lista)
 
         prom = []
         for ob in lista:
             
             prom.append(np.mean(ob))
 
-        print(prom)
+        # print(prom)
         aux = np.matmul(w,prom)
-        # suma = sum(abs(aux))
-        print(aux)
+        print('lidAvg: ', aux)
+        return aux
+
+    def fuzzInput(self,avg):
+
+        # Se dan valores a las entradas del sistema
+        self.bot_sim.input['detection'] = avg
+
+        # Se procesan los datos y se obtiene el resultado
+        self.bot_sim.compute()
+
+        return self.bot_sim.output['linear'], self.bot_sim.output['angular']
+
 
     def initFuzzy(self):
-        lidarDist = ctrl.Antecedent(np.arange(0.3, 3.8, 0.1), 'distance')
-        direction = ctrl. Antecedent(np.arange(0, 10, 1), 'direction')
-        lid = ctrl.Antecedent(np.arange(-1,5,0.1),'detection')
+
+        lid = ctrl.Antecedent(np.arange(-5,8,0.1),'detection')
 
         linearSpeed = ctrl.Consequent(np.arange(0, 1, 0.01), 'linear')
         angularSpeed = ctrl.Consequent(np.arange(-3.0, 3, 0.1), 'angular')
 
-        lid['asd'] = fuzz.trimf(lid.universe, [0, 0, 13])
-        lid['medium'] = fuzz.trimf(lid.universe, [0, 13, 25])
-        lid['high'] = fuzz.trimf(lid.universe, [13, 25, 25])
+        lid['choque-derecha'] = fuzz.trimf(lid.universe, [-5, -5, -3])
+        lid['corregir-derecha'] = fuzz.trimf(lid.universe, [-4, -2, 0])
+        lid['choque-centro'] = fuzz.trimf(lid.universe, [-1, 0, 2])
+        lid['corregir-izquierda'] = fuzz.trimf(lid.universe, [0, 2.5, 4])
+        lid['ideal'] = fuzz.trimf(lid.universe, [3.5, 4, 4.5])
+        lid['corregir-izquierda2'] = fuzz.trimf(lid.universe, [4, 5, 7])
+        lid['choque-izquierda'] = fuzz.trimf(lid.universe, [6, 7, 8])
         
-        lidNames = ['center','left','center','right','farRight']
-        lid.automf(names=lidNames)
-
-        lidarNames = ['closest','close','medium','far','further']
-        lidarDist.automf(names=lidarNames)
-
-        directionNames = ['farLeft','left','center','right','farRight']
-        direction.automf(names=directionNames)
-
-        linearNames = ['slowest','slower','slow','average','fast','faster','fastest']
-        linearSpeed.automf(names=linearNames)
+        linearSpeed['stop'] = fuzz.trimf(linearSpeed.universe, [0, 0, 0.05])
+        linearSpeed['slow'] = fuzz.trimf(linearSpeed.universe, [0.04, 0.1, 0.2])
+        linearSpeed['average'] = fuzz.trimf(linearSpeed.universe, [0.1, 0.5, 0.9])
+        linearSpeed['fast'] = fuzz.trimf(linearSpeed.universe, [0.8, 1 ,1])
 
         angularNames = ['sharpRight','right','softRight','stright','softLeft','left','sharpLeft']
         angularSpeed.automf(names=angularNames)
 
-        # fuzzyLidar.view()
-        # plt.show()
-
-        # direction.view()
-        # plt.show()
-
-        # linearSpeed.view()
-        # plt.show()
-
-        # angularSpeed.view()
-        # plt.show()
-
         #REGLAS:
-        rule1 = ctrl.Rule(lidarDist['closest'], linearSpeed['slowest'])
-        rule2 = ctrl.Rule(lidarDist['further'], linearSpeed['fastest'])
-        rule3 = ctrl.Rule(direction['center'] & lidarDist['close'], linearSpeed['slowest'])
+        rule1 = ctrl.Rule(lid['choque-derecha'],consequent= (linearSpeed['stop'],angularSpeed['sharpRight']))
+
+        rule2 = ctrl.Rule(lid['choque-izquierda'], consequent = (linearSpeed['stop'], angularSpeed['sharpLeft']))
+
+        rule3 = ctrl.Rule(lid['choque-centro'], consequent = linearSpeed['stop'])
+
+        rule4 = ctrl.Rule(lid['corregir-derecha'], (linearSpeed['average'], angularSpeed['softLeft']))
+        rule5 = ctrl.Rule(lid['corregir-izquierda'], (linearSpeed['average'], angularSpeed['softRight']))
+
+        rule6 = ctrl.Rule(lid['corregir-izquierda2'], (linearSpeed['average'], angularSpeed['softRight']))
+
+        rule7 = ctrl.Rule(lid['ideal'], (linearSpeed['average'],angularSpeed['stright']))
+
+        # Se crea el contorlador del sistema
+        self.bot_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7])
+        # Se realiza una simulación dle controlador par auna cituación en específico
+        self.bot_sim = ctrl.ControlSystemSimulation(self.bot_ctrl)
 
 
     
