@@ -1,0 +1,4 @@
+<launch>
+    <node name="bot" pkg="entrega2" type="main.py" output="screen" />
+</launch>
+
