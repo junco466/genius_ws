@@ -7,10 +7,14 @@ from time import sleep
 
 class DetectSign():
     def __init__(self,_follow):
+
+        #--OBJECTS , CONFIGS--
         self.fnPreproc()
-        self.TrafficSign = Enum('TrafficSign', 'intersection left right tunnel prec prec2 construction barra barraUp')
+        self.TrafficSign = Enum('TrafficSign', 'intersection left right tunnel prec prec2 construction barra barraUp parking')
         self.counter = 1
         self.follow = _follow
+
+        #--FLAGS--
         self.dir_path = None
         self.yaGire = False
         self.Cruce = True
@@ -19,7 +23,10 @@ class DetectSign():
         self.barra = False
         self.tunnel = False
         self.barDetected = False
+        self.parking = False
+        self.parkingDetected = False
 
+        #--COUNTERS--
         self.left_count = 0
         self.right_count = 0
         self.prec_count = 0
@@ -41,6 +48,7 @@ class DetectSign():
         self.img_prec2 = cv2.imread(self.dir_path + 'prec2.png',0)
         self.img_barra = cv2.imread(self.dir_path + 'barra.png',0)
         self.img_barraUp = cv2.imread(self.dir_path + 'barraUp.png',0)
+        self.img_parking = cv2.imread(self.dir_path + 'parking3.png',0)
 
 
         self.kp_intersection, self.des_intersection  = self.sift.detectAndCompute(self.img_intersection, None)
@@ -54,6 +62,7 @@ class DetectSign():
         self.kp_prec2, self.des_prec2 = self.sift.detectAndCompute(self.img_prec2, None)
         self.kp_barra, self.des_barra = self.sift.detectAndCompute(self.img_barra, None)
         self.kp_barraUp, self.des_barraUp = self.sift.detectAndCompute(self.img_barraUp, None)
+        self.kp_parking, self.des_parking = self.sift.detectAndCompute(self.img_parking, None)
 
 
         FLANN_INDEX_KDTREE = 0
@@ -141,9 +150,12 @@ class DetectSign():
                     rospy.loginfo("detect right sign")
                     self.right_count = self.right_count + 1
                     print('conteo right: ', self.right_count)
+                   
                     if self.right_count > 2:
+
                         self.follow.Radvice = True
                         self.yaGire = True 
+                        
                     image_out_num = 3
 
             else:
@@ -180,6 +192,7 @@ class DetectSign():
                         self.follow.Padvice = True
                         self.Cruce = False 
                         self.obras = True
+
                     image_out_num = 4
 
             else:
@@ -212,6 +225,7 @@ class DetectSign():
                         self.follow.Padvice = True
                         self.Cruce = False 
                         self.obras = True
+
                     image_out_num = 5
 
             else:
@@ -327,7 +341,8 @@ class DetectSign():
             final_tunnel = cv2.drawMatches(cv_image_input,kp1,self.img_tunnel,self.kp_tunnel,good_tunnel,None,**draw_params_tunnel)
             cv2.imshow('Final tunnel', final_tunnel)
             cv2.waitKey(1)
-        self.Dbarra = True
+        # self.Dbarra = True
+
 
 
 
@@ -397,6 +412,70 @@ class DetectSign():
             cv2.waitKey(1)
 
 
+    def detectParking(self,image_msg):
+        
+        print('detectando parking')
+
+        # drop the frame to 1/3 (6fps) because of the processing speed. This is up to your computer's operating power.
+        if self.counter % 2 != 0:
+            self.counter += 1
+            return
+        else:
+            self.counter = 1
+            # cv_image_input = self.cvBridge.imgmsg_to_cv2(image_msg, "bgr8")
+            cv_image_input = image_msg
+
+        cv_image_input = image_msg
+        MIN_MATCH_COUNT = 9 #9
+        MIN_MSE_DECISION = 50000
+
+        # find the keypoints and descriptors with SIFT
+        kp1, des1 = self.sift.detectAndCompute(cv_image_input,None)
+
+        matches_parking = self.flann.knnMatch(des1,self.des_parking,k=2)
+
+        image_out_num = 1
+
+        good_parking = []
+        for m,n in matches_parking:
+            if m.distance < 0.7*n.distance:
+                good_parking.append(m)
+        if len(good_parking)>MIN_MATCH_COUNT:
+            src_pts = np.float32([kp1[m.queryIdx].pt for m in good_parking ]).reshape(-1,1,2)
+            dst_pts = np.float32([self.kp_parking[m.trainIdx].pt for m in good_parking]).reshape(-1,1,2)
+
+            M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+            matches_parking = mask.ravel().tolist()
+
+            mse = self.fnCalcMSE(src_pts, dst_pts)
+            if mse < MIN_MSE_DECISION:
+                msg_sign = UInt8()
+                msg_sign.data = self.TrafficSign.parking.value
+
+                rospy.loginfo("detect parking sign")
+                #---->comando de accion
+                self.follow.park = True
+                self.parkingDetected = True
+                image_out_num = 2
+                # self.follow.linearSpeed = 0.03
+
+        else:
+            rospy.loginfo("parking not detected")
+
+
+        if image_out_num == 1:
+            cv2.imshow('Input image', cv_image_input)
+            cv2.waitKey(1)
+            
+        elif image_out_num == 2:
+            draw_params_parking = dict(matchColor = (255,0,0), # draw matches in green color
+                        singlePointColor = None,
+                        matchesMask = matches_parking, # draw only inliers
+                        flags = 2)
+
+            final_parking = cv2.drawMatches(cv_image_input,kp1,self.img_parking,self.kp_parking,good_parking,None,**draw_params_parking)
+            cv2.imshow('Final parking', final_parking)
+            cv2.waitKey(1)
 
 
     def detectBar(self, img):
@@ -550,7 +629,7 @@ class DetectSign():
         # print('len circles:', len(circles))
         # ensure at least some circles were found
 
-        if Bcircles is not None and self.yaGire is not True:
+        if (Bcircles is not None and self.yaGire is not True) or (self.parking is True and Bcircles is not None):
 
             Bcircles = np.round(Bcircles[0, :]).astype("int")
 
@@ -564,7 +643,13 @@ class DetectSign():
             cv2.imshow('output:',output)
             cv2.waitKey(1)
             print('entre a azul')
-            self.circleTrafficSign(im)
+
+            if self.parking is not True:
+                self.circleTrafficSign(im)
+            else:
+                self.follow.finalParking = True
+                self.parking = False
+                self.barra = True
 
         elif Rcircles is not None and self.yaGire:
             # convert the (x, y) coordinates and radius of the circles to integers
@@ -642,27 +727,33 @@ class DetectSign():
         # cv2.waitKey(1)
 
 
-    def cuadrado(self):
+    def cuadrado(self, im):
         
 
-        # read the input image
-        img = cv2.imread('parking.jpg')
+        # # read the input image
+        # img = cv2.imread('parking.jpg')
+
+        img = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+        lowerBlue = np.array([90, 50, 20])
+        upperBlue = np.array([120, 255, 255])
+        mask_b = cv2.inRange(img, lowerBlue, upperBlue)
+        _, maskB = cv2.threshold(mask_b, 200, 255, cv2.THRESH_BINARY_INV)
 
         # convert the image to grayscale
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # apply thresholding to convert the grayscale image to a binary image
-        ret,thresh = cv2.threshold(gray,50,255,0)
+        # ret,thresh = cv2.threshold(gray,50,255,0)
 
-        gray = cv2.bitwise_not(gray) #invertir la imagen binaria
+        # gray = cv2.bitwise_not(gray) #invertir la imagen binaria
 
         kernel = np.ones((2, 2), np.uint8)
-        thresh = cv2.morphologyEx(gray,cv2.MORPH_ERODE,kernel)
+        thresh = cv2.morphologyEx(maskB,cv2.MORPH_ERODE,kernel)
         #thresh = cv2.dilate(img, kernel, iterations=1)
         # cv2.imshow("close",dilation_shape)
         # cv2.waitKey(0)
         cv2.imshow('thresh',thresh)
-        cv2.waitKey(0)
+        cv2.waitKey(1)
 
         # find the contours
         contours,hierarchy = cv2.findContours(thresh, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -670,18 +761,21 @@ class DetectSign():
 
         for cnt in contours:
             approx = cv2.approxPolyDP(cnt, 0.02*cv2.arcLength(cnt, True), True)
+            # print(f'aprox: {approx}')
             if len(approx) == 4:
-                # compute the center of mass of the triangle
-                img = cv2.drawContours(img, [cnt], -1, (0,0,255), 3)
-                M = cv2.moments(cnt)
-                if M['m00'] != 0.0:
-                    x = int(M['m10']/M['m00'])
-                    y = int(M['m01']/M['m00'])
-                cv2.putText(img, 'Parking', (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
-        cv2.imshow("Shapes", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+                self.detectParking(im)
+
+                # compute the center of mass of the triangle
+                # img = cv2.drawContours(img, [cnt], -1, (0,0,255), 3)
+                # M = cv2.moments(cnt)
+                # if M['m00'] != 0.0:
+                #     x = int(M['m10']/M['m00'])
+                #     y = int(M['m01']/M['m00'])
+                # cv2.putText(img, 'Parking', (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+
+        # cv2.imshow("Shapes", img)
+        # cv2.waitKey(1)
 
 
 

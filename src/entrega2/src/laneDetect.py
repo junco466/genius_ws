@@ -34,12 +34,15 @@ class laneDetect:
         self.robot = _robot
         # self.imageSub = None
 
-        # #PRUEBAS....::::
-        # self.sign.cruce = False
-        # self.sign.obras = True
-        # self.sign.consDetected = True
+        #PRUEBAS....::::
+        # self.sign.Cruce = False
+        # self.sign.obras = False
+        # self.sign.consDetected = False
+        # self.sign.barra = False
+        # self.sign.tunnel = False
+        # self.sign.parking = True
         # self.start = True
-        # #................::::::::
+        #................::::::::
 
 
 
@@ -67,6 +70,7 @@ class laneDetect:
             yellowFraction, yellowLane, yellowLaneRGB = self.maskYellowLane(cutImg)
 
             try:
+
                 if yellowFraction > 50:
                     self.leftFitx, self.leftFit = self.slidingWindow(yellowLane, 'left')
                     self.movAvgLeft = np.array([self.leftFit])
@@ -90,7 +94,8 @@ class laneDetect:
                 elif self.robot.ruta is False:
                     print('acabo ruta')
                     self.scan.scanOn = False
-                    self.sign.barra = True
+                    self.sign.parking = True
+                    # self.sign.barra = True
                     self.sign.obras = False
                 else:
                     print('obras')  
@@ -103,6 +108,34 @@ class laneDetect:
                 #     self.sign.barra = True
                 #     self.sign.obras = False
                     
+            if self.sign.parking:
+                if self.sign.parkingDetected is False:
+                    self.sign.cuadrado(self.cvImage)
+                else:
+                    if self.follow.endParking is False or self.follow.parkStart is False:
+                        try:
+
+                            if yellowFraction > 50:
+                                self.leftFitx, self.leftFit = self.slidingWindow(yellowLane, 'left')
+                                self.movAvgLeft = np.array([self.leftFit])
+
+                            if yellowFraction > 50:
+                                print("lineas amarillas")
+                                self.rightFitx, self.rightFit = self.slidingWindow(yellowLane, 'right')
+                                self.movAvgRight = np.array([self.rightFit])
+                        except:
+                            pass
+
+                        if self.follow.endParking:
+                            self.sign.circle(self.cvImage)
+                            self.scan.scanParking = False
+                        else:
+                            self.scan.scanParking = True
+
+                final = self.makeLane(cutImg)
+                self.follow.seguirLinea(final)
+
+                return False
 
             if self.sign.barra:
                 self.sign.detectBar(self.cvImage)
@@ -112,7 +145,7 @@ class laneDetect:
                 self.sign.detectTunnel(self.cvImage)
 
                 
-            
+            #Comentar para no seguir linea PRUEBAS <------
             final = self.makeLane(cutImg)
             self.follow.seguirLinea(final)
         else:
@@ -251,6 +284,8 @@ class laneDetect:
         laneFitx = laneFit[0] * ploty ** 2 + laneFit[1] * ploty + laneFit[2]
 
         return laneFitx, laneFit
+
+
 
     def makeLane(self, cvImage):
         # Creamos una imagen donde dibujar las lineas

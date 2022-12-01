@@ -13,6 +13,8 @@ class Scanner:
         self.odom = _odom
         self.follow = _follow
         self.scanOn = False
+        self.scanParking = False
+        # self.carParked = False
         # self.initScan() # Define una propiedad para inicial el escaneo
         print('init scan')
         self.laserSub = rospy.Subscriber("/scan",LaserScan,self.scanCallback) # Creo el subsciptor
@@ -54,6 +56,37 @@ class Scanner:
 
             if suma > 13:
                 self.follow.cons = True
+        
+        if self.scanParking:
+
+            lidar = msg.ranges
+            angulo = 200
+
+            ranges = np.zeros(angulo)
+
+            ranges[0:angulo//2] = lidar[angulo//2:0:-1]
+            ranges[(angulo//2)::] = lidar[360:359-angulo//2:-1]
+            for i in range(0,len(ranges)):
+                if (ranges[i] < 0.35):
+                    # self.carParked = True
+                    if i < 110:
+                        self.follow.leftParked = True
+                        self.scanParking = False
+                    else:
+                        self.follow.rightParked = True
+                        self.scanParking = False
+
+
+            # print('ranges: ', ranges)
+            
+            # lidAvg = self.pesos(ranges)
+            # print('lidAvg: ', lidAvg)
+
+            # suma = sum(ranges)
+            # print('suma: ',suma)
+
+            # if suma > 13:
+            #     self.follow.cons = True
 
 
 

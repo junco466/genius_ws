@@ -58,7 +58,6 @@ class moveRobot(object): # Se crea una clase para realizar los movimientos del r
 
         if self.ruta:
 
-            print('fuck')
             print("···············Enderezar······························")
             while self.odom.grd > 5: #not in range(0, 10):
                 self.move(0, 0, -1)
@@ -142,14 +141,172 @@ class moveRobot(object): # Se crea una clase para realizar los movimientos del r
 
             self.stop()
             # self.move(0.2, 0, -1)
-            self.move(3, 0.08, 0)
+            self.move(3, 0.08, 0.1)
             self.stop()
             time.sleep(2)
 
         self.ruta = False
         self.stop()
         
+
+    def parkSt(self):
+
+        self.stop()
+        time.sleep(2)
+        self.move(6,0.08,0)
+        self.stop()
+        time.sleep(2)
+        print("················Giro REF 270·····························")
+        while True:
+
+            if self.odom.grd < 260: #not in range(0, 10):
+                print('start bucle')
+                self.move(0, 0.01, 1)
+            elif self.odom.grd > 280: #not in range(0, 10):
+                self.move(0, 0, -1)
+            else:
+                break
+
+        print("··············································")
+        self.stop()
+        time.sleep(1)
+        # self.move(0.9,0,1.7)
+        # self.stop()
+        # time.sleep(2)
+        self.move(4,0.08,0)
+        self.stop()
+        time.sleep(1)
+
+
+    def parkLeft(self):
+
+        print("················Giro REF 270·····························")
+        while True:
+
+            if self.odom.grd < 260: #not in range(0, 10):
+                print('primer bucle')
+                self.move(0, 0, 1)
+            elif self.odom.grd > 280: #not in range(0, 10):
+                self.move(0, 0, -1)
+            else:
+                break
+
+        print("··············································")
+
+        self.stop()
+        time.sleep(2)
+        self.move(3,0.08,0)
+        self.stop()
+        time.sleep(2)
+
+        print('Angle: ',self.odom.grd)
+        print("················Giro REF 0º·····························")
+        while self.odom.grd > 10: #not in range(0, 10):
+            print('primer bucle')
+            self.move(0, 0, 1)
+        print("··············································")
+
+        self.stop()
+        time.sleep(1)
+        self.move(2.8,-0.08,0)
+        self.stop()
+        time.sleep(2)
+
         
+        self.move(2.8,0.08,0)
+        self.stop()
+        time.sleep(2)
+
+        print('Angle: ',self.odom.grd)
+        print("················Giro REF 90º·····························")
+        while self.odom.grd < 85: #not in range(0, 10):
+            print('segundo bucle')
+            self.move(0, 0, 1)
+        print("··············································")
+
+
+        self.stop()
+        time.sleep(1)
+        self.move(4,0.08,0)
+        self.stop()
+        time.sleep(2)
+
+
+
+    def parkRight(self):
+
+        print("················Giro REF 270·····························")
+        while True:
+
+            if self.odom.grd < 260: #not in range(0, 10):
+                print('primer bucle')
+                self.move(0, 0, 1)
+            elif self.odom.grd > 280: #not in range(0, 10):
+                self.move(0, 0, -1)
+            else:
+                break
+
+        print("··············································")
+
+        self.stop()
+        time.sleep(2)
+        self.move(3,0.08,0)
+        self.stop()
+        time.sleep(2)
+
+        print('Angle: ',self.odom.grd)
+        print("················Giro REF 180º·····························")
+        while self.odom.grd > 180: #not in range(0, 10):
+            print('primer bucle')
+            self.move(0, 0, -1)
+        print("··············································")
+
+        self.stop()
+        time.sleep(1)
+        self.move(2.8,-0.08,0)
+        self.stop()
+        time.sleep(2)
+
+        
+        self.move(2.8,0.08,0)
+        self.stop()
+        time.sleep(2)
+
+        print('Angle: ',self.odom.grd)
+        print("················Giro REF 90º·····························")
+        while self.odom.grd > 90: #not in range(0, 10):
+            print('segundo bucle')
+            self.move(0, 0, -1)
+        print("··············································")
+
+
+        self.stop()
+        time.sleep(1)
+        self.move(4,0.08,0)
+        self.stop()
+        time.sleep(2)
+
+
+        # self.moveRobot.stop()
+        # time.sleep(2)
+        # self.moveRobot.move(3,0.08,0)
+        # self.moveRobot.stop()
+        # time.sleep(2)
+        # self.moveRobot.move(0.9,0,-1.7)
+        # self.moveRobot.stop()
+        # time.sleep(2)
+        # self.moveRobot.move(1,-0.08,0)
+        # self.moveRobot.stop()
+        # time.sleep(2)
+        # self.moveRobot.move(1,0.08,0)
+        # self.moveRobot.stop()
+        # time.sleep(2)
+        # self.moveRobot.move(0.9,0,-1.7)
+        # self.moveRobot.stop()
+        # time.sleep(2)
+        # self.moveRobot.move(3,0.08,0)
+        # self.moveRobot.stop()
+        # time.sleep(2)
         
     def publishOnceCmdVel(self, cmd): # Se crea la funcion de publicacion
         while not self.ctrl_c:

@@ -19,7 +19,15 @@ class Follower:
     self.slowly = False
     self.cons  = False
     self.bar = False
+    self.park = False
+    self.parkStart = True
+    self.rightParked = False
+    self.leftParked = False
     self.victory = False
+    self.endParking = False
+    self.finalParking = False
+
+    self.parkCounter = 0
         
   def seguirLinea(self,tendency):
 
@@ -49,6 +57,7 @@ class Follower:
         self.moveRobot.move(0, 0.04, -float(err) / 100)
         self.Tadvice = False
 
+
       elif self.Radvice:
         print('voltie derecha')
         time.sleep(0.5)
@@ -58,6 +67,7 @@ class Follower:
         self.slowly = True
         self.giroPrevioD = True
 
+
       elif self.Ladvice:
         time.sleep(0.5)
         print('voltie izquierda')
@@ -66,6 +76,7 @@ class Follower:
         self.Ladvice = False
         self.slowly = True
         self.giroPrevioI = True
+
 
       elif self.Padvice:
         if self.giroPrevioD:
@@ -79,6 +90,7 @@ class Follower:
           time.sleep(1)
           # self.moveRobot.moveRight()
           
+
         elif self.giroPrevioI:
           self.moveRobot.stop()
           time.sleep(1)
@@ -95,11 +107,50 @@ class Follower:
         self.Padvice = False
         self.slowly = False
           
+
+
       elif self.cons:
         # print('pareeeeeeee')
         self.moveRobot.stop()
         self.moveRobot.moveObstaculos()
         self.cons = False
+
+
+
+
+      elif self.park:
+
+        if self.parkStart:
+          print('entre zona de parking')
+          self.moveRobot.parkSt()
+          self.parkStart = False
+
+        elif self.leftParked:
+          print('carro parqueado izquierda')
+          self.moveRobot.parkLeft()
+          self.endParking = True
+          self.leftParked = False
+
+        elif self.rightParked:
+          print('carro parqueado derecha')
+          self.moveRobot.parkRight()
+          self.endParking = True
+          self.rightParked = False
+
+        elif self.finalParking:
+          self.moveRobot.move(4,0.08,0)
+          self.moveRobot.moveLeft()
+          self.finalParking = False
+          self.park = False
+
+        else:
+          if self.parkCounter < 10:
+            err = 2.0
+            self.parkCounter = self.parkCounter + 1
+          self.moveRobot.move(0, 0.04, (-float(err)) / 100)
+          # pass
+
+
 
       elif self.bar:
         print('pare por barra')
