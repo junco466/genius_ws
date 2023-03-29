@@ -3,17 +3,17 @@
 
 import sys
 import cv2
-from followLane import Follower
 import rospy
 import numpy as np
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge, CvBridgeError
-from scan import Scanner
 
+from followLane import Follower
+from scan import Scanner
 from laneDetect import laneDetect
 from moveRobot import moveRobot
-from fuzzy import Fuzzy
+#from fuzzy import Fuzzy
 from odomPosition import odomNode
 
 class mainClass:

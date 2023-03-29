@@ -56,11 +56,10 @@ class laneDetect:
             self.detectLane()
         except CvBridgeError as e:
             self.get_logger().info("Turtlebot3 image is not captured.")           
+          
             
     def detectLane(self):
         
-        
-
         if self.start:
             
             # heigth, width = self.cvImage.shape[:2]
@@ -115,12 +114,12 @@ class laneDetect:
                     if self.follow.endParking is False or self.follow.parkStart is False:
                         try:
 
+                            print("lineas amarillas")
                             if yellowFraction > 50:
                                 self.leftFitx, self.leftFit = self.slidingWindow(yellowLane, 'left')
                                 self.movAvgLeft = np.array([self.leftFit])
 
                             if yellowFraction > 50:
-                                print("lineas amarillas")
                                 self.rightFitx, self.rightFit = self.slidingWindow(yellowLane, 'right')
                                 self.movAvgRight = np.array([self.rightFit])
                         except:

@@ -414,7 +414,7 @@ class DetectSign():
 
     def detectParking(self,image_msg):
         
-        print('detectando parking')
+        # print('detectando parking')
 
         # drop the frame to 1/3 (6fps) because of the processing speed. This is up to your computer's operating power.
         if self.counter % 2 != 0:
@@ -757,7 +757,7 @@ class DetectSign():
 
         # find the contours
         contours,hierarchy = cv2.findContours(thresh, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        print("Number of contours detected:",len(contours))
+        # print("Number of contours detected:",len(contours))
 
         for cnt in contours:
             approx = cv2.approxPolyDP(cnt, 0.02*cv2.arcLength(cnt, True), True)

@@ -141,7 +141,7 @@ class moveRobot(object): # Se crea una clase para realizar los movimientos del r
 
             self.stop()
             # self.move(0.2, 0, -1)
-            self.move(3, 0.08, 0.1)
+            self.move(4, 0.08, 0.05)
             self.stop()
             time.sleep(2)
 
